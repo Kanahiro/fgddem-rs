@@ -1,0 +1,17 @@
+[package]
+name = "fgddem"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.86"
+clap = "4.5.11"
+gdal = "0.17.0"
+rayon = "1.10.0"
+serde = { version = "1.0.204", features = ["derive"] }
+serde-xml-rs = "0.6.0"
+
+[dev-dependencies]
+assert_cmd = "2.0.15"
