@@ -62,3 +62,11 @@ pub fn run(config: Config) -> Result<(), Box<dyn std::error::Error>> {
     });
     Ok(())
 }
+
+#[test]
+fn test_extract_stem() {
+    assert_eq!(
+        extract_stem("tests/fixture/FG-GML-5238-74-00-DEM5A-20161001.xml").unwrap(),
+        "FG-GML-5238-74-00-DEM5A-20161001"
+    );
+}

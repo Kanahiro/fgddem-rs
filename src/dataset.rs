@@ -101,7 +101,7 @@ where
     Ok(v)
 }
 
-pub fn parse(content: &str) -> Result<Dataset> {
+fn parse(content: &str) -> Result<Dataset> {
     let dataset = serde_xml_rs::from_str(content)?;
     Ok(dataset)
 }
@@ -131,5 +131,87 @@ impl Dataset {
 
     pub fn get_grid_values(&self) -> &Vec<f64> {
         &self.DEM.coverage.rangeSet.DataBlock.tupleList
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse() {
+        let content = r#"<?xml version="1.0" encoding="UTF-8"?>
+<Dataset xsi:schemaLocation="http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema FGD_GMLSchema.xsd" 
+	xmlns:gml="http://www.opengis.net/gml/3.2" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" 
+	xmlns:xlink="http://www.w3.org/1999/xlink" 
+	xmlns="http://fgd.gsi.go.jp/spec/2008/FGD_GMLSchema" 
+	gml:id="Dataset1">
+	<gml:description>基盤地図情報メタデータ ID=fmdid:15-3101</gml:description>
+	<gml:name>基盤地図情報ダウンロードデータ（GML版）</gml:name>
+	<DEM gml:id="DEM001">
+		<fid>fgoid:10-00100-15-60101-52387400</fid>
+		<lfSpanFr gml:id="DEM001-1">
+			<gml:timePosition>2016-10-01</gml:timePosition>
+		</lfSpanFr>
+		<devDate gml:id="DEM001-2">
+			<gml:timePosition>2016-10-01</gml:timePosition>
+		</devDate>
+		<orgGILvl>0</orgGILvl>
+		<orgMDId>H21C0333 H27HEIGOU</orgMDId>
+		<type>5mメッシュ（標高）</type>
+		<mesh>52387400</mesh>
+		<coverage gml:id="DEM001-3">
+			<gml:boundedBy>
+				<gml:Envelope srsName="fguuid:jgd2011.bl">
+					<gml:lowerCorner>0 0</gml:lowerCorner>
+					<gml:upperCorner>2 2</gml:upperCorner>
+				</gml:Envelope>
+			</gml:boundedBy>
+			<gml:gridDomain>
+				<gml:Grid dimension="2" gml:id="DEM001-4">
+					<gml:limits>
+						<gml:GridEnvelope>
+							<gml:low>0 0</gml:low>
+							<gml:high>2 2</gml:high>
+						</gml:GridEnvelope>
+					</gml:limits>
+					<gml:axisLabels>x y</gml:axisLabels>
+				</gml:Grid>
+			</gml:gridDomain>
+			<gml:rangeSet>
+				<gml:DataBlock>
+					<gml:rangeParameters>
+						<gml:QuantityList uom="DEM構成点"></gml:QuantityList>
+					</gml:rangeParameters>
+                    <gml:tupleList>
+                        地表面,145.30
+                        地表面,145.10
+                        地表面,144.90
+                        地表面,144.90
+                        地表面,144.84
+                        地表面,144.81
+                        地表面,121.90
+                        内水面,-9999.
+                        内水面,-9999.
+                    </gml:tupleList>
+				</gml:DataBlock>
+			</gml:rangeSet>
+			<gml:coverageFunction>
+				<gml:GridFunction>
+					<gml:sequenceRule order="+x-y">Linear</gml:sequenceRule>
+					<gml:startPoint>0 0</gml:startPoint>
+				</gml:GridFunction>
+			</gml:coverageFunction>
+		</coverage>
+	</DEM>
+</Dataset>"#;
+        let dataset = Dataset::from_str(&content).unwrap();
+        assert_eq!(dataset.get_extent(), ((0.0, 0.0), (2.0, 2.0)));
+        assert_eq!(dataset.get_grid_shape(), (3, 3));
+        assert_eq!(
+            dataset.get_grid_values(),
+            &vec![145.30, 145.10, 144.90, 144.90, 144.84, 144.81, 121.90, -9999., -9999.]
+        );
     }
 }
