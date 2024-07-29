@@ -27,10 +27,11 @@ jobs:
               run: rustup update ${{ matrix.toolchain }} && rustup default ${{ matrix.toolchain }}
             - name: Install cargo-llvm-cov
               uses: taiki-e/install-action@cargo-llvm-cov
-            - name: Setup cmake
-              uses: jwlawson/actions-setup-cmake@v2
-              with:
-                  cmake-version: '3.29.x'
+            - name: install libgdal-dev
+              run: |
+                  sudo apt-add-repository ppa:ubuntugis/ubuntugis-unstable
+                  sudo apt-get update
+                  sudo apt-get install gdal-bin libgdal-dev
             - name: Build
               run: cargo build --verbose
             - name: Test
