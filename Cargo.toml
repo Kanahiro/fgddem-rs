@@ -9,9 +9,9 @@ edition = "2021"
 anyhow = "1.0.86"
 clap = "4.5.11"
 gdal = "0.17.0"
+quick-xml = { version = "0.36.1", features = ["serialize"] }
 rayon = "1.10.0"
 serde = { version = "1.0.204", features = ["derive"] }
-serde-xml-rs = "0.6.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.15"
