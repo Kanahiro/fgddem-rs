@@ -101,16 +101,12 @@ where
     Ok(v)
 }
 
-fn parse(content: &str) -> Result<Dataset> {
-    let dataset = serde_xml_rs::from_str(content)?;
-    Ok(dataset)
-}
-
 impl FromStr for Dataset {
     type Err = anyhow::Error;
 
     fn from_str(s: &str) -> Result<Self> {
-        parse(s)
+        let dataset = quick_xml::de::from_str(s)?;
+        Ok(dataset)
     }
 }
 
