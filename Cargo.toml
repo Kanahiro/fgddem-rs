@@ -15,3 +15,8 @@ serde-xml-rs = "0.6.0"
 
 [dev-dependencies]
 assert_cmd = "2.0.15"
+criterion = "0.5.1"
+
+[[bench]]
+name = "benchmark"
+harness = false
