@@ -70,7 +70,7 @@ struct RangeSet {
 #[derive(Deserialize, Debug)]
 struct DataBlock {
     #[serde(deserialize_with = "parse_tupleList")]
-    tupleList: Vec<f64>,
+    tupleList: Vec<f32>,
 }
 
 fn parse_tuple_as_numeric<'de, D, T>(deserializer: D) -> Result<(T, T), D::Error>
@@ -86,7 +86,7 @@ where
     Ok((x, y))
 }
 
-fn parse_tupleList<'de, D>(deserializer: D) -> Result<Vec<f64>, D::Error>
+fn parse_tupleList<'de, D>(deserializer: D) -> Result<Vec<f32>, D::Error>
 where
     D: serde::Deserializer<'de>,
 {
@@ -125,7 +125,7 @@ impl Dataset {
         (x, y)
     }
 
-    pub fn get_grid_values(&self) -> &Vec<f64> {
+    pub fn get_grid_values(&self) -> &Vec<f32> {
         &self.DEM.coverage.rangeSet.DataBlock.tupleList
     }
 }

@@ -25,6 +25,6 @@ fgddem input_dir/*.xml -o out --merge
 
 ## 出力仕様
 
-- GeoTIFF, single band, Float64
+- GeoTIFF, single band, Float32
 - CRS: EPSG:6668 (JGD2011 lat-lon)
 - Nodata: `-9999`

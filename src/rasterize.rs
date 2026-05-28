@@ -8,7 +8,7 @@ use rayon::prelude::*;
 
 use crate::dataset::{parse_metadata, Dataset};
 
-const NODATA: f64 = -9999.0;
+const NODATA: f32 = -9999.0;
 const EPSG: u16 = 6668;
 const TIFF_TILE_W: usize = 256;
 const TIFF_TILE_H: usize = 256;
@@ -36,7 +36,7 @@ impl CompressionKind {
 pub fn write(
     grid_shape: (usize, usize),
     extent: ((f64, f64), (f64, f64)),
-    values: &Vec<f64>,
+    values: &Vec<f32>,
     output: &str,
     compression: CompressionKind,
 ) -> Result<()> {
@@ -147,14 +147,14 @@ pub fn write_merged_streaming(
         .nodata(&NODATA.to_string())
         .compression(compression.to_geotiff())
         .tile_size(TIFF_TILE_W as u32, TIFF_TILE_H as u32)
-        .tile_writer_file::<f64, _>(output)?;
+        .tile_writer_file::<f32, _>(output)?;
 
-    let mut active: HashMap<(usize, usize), Vec<f64>> = HashMap::new();
+    let mut active: HashMap<(usize, usize), Vec<f32>> = HashMap::new();
 
     for chunk in metas.chunks(PARSE_CHUNK) {
-        let parsed: Vec<(usize, usize, Vec<f64>)> = chunk
+        let parsed: Vec<(usize, usize, Vec<f32>)> = chunk
             .par_iter()
-            .map(|m| -> Result<(usize, usize, Vec<f64>)> {
+            .map(|m| -> Result<(usize, usize, Vec<f32>)> {
                 let content = std::fs::read_to_string(&m.path)?;
                 let dataset = Dataset::from_str(&content)?;
                 Ok((m.col_off, m.row_off, dataset.get_grid_values().clone()))
@@ -222,10 +222,10 @@ fn tiff_tile_range(
 }
 
 fn flush_tile<W: std::io::Write + std::io::Seek>(
-    writer: &mut geotiff_writer::StreamingTileWriter<f64, W>,
+    writer: &mut geotiff_writer::StreamingTileWriter<f32, W>,
     tc: usize,
     tr: usize,
-    buf: Vec<f64>,
+    buf: Vec<f32>,
     width: usize,
     height: usize,
 ) -> Result<()> {
