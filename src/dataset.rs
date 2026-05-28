@@ -302,4 +302,34 @@ mod tests {
         assert_eq!(meta.shape, dataset.get_grid_shape());
         assert_eq!(meta.extent, dataset.get_extent());
     }
+
+    #[test]
+    fn test_parse_metadata_missing_file() {
+        let path = std::path::Path::new("tests/fixture/does-not-exist.xml");
+        assert!(parse_metadata(path).is_err());
+    }
+
+    #[test]
+    fn test_parse_metadata_missing_fields() {
+        let dir = std::env::temp_dir().join("fgddem-test-missing-fields");
+        std::fs::create_dir_all(&dir).unwrap();
+        let path = dir.join("partial.xml");
+        // Only lowerCorner is present — upperCorner / low / high are missing.
+        std::fs::write(
+            &path,
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:gml="http://www.opengis.net/gml/3.2">
+  <gml:lowerCorner>0 0</gml:lowerCorner>
+</root>"#,
+        )
+        .unwrap();
+        let err = parse_metadata(&path).unwrap_err();
+        assert!(err.to_string().contains("missing"));
+    }
+
+    #[test]
+    fn test_dataset_from_str_invalid_xml() {
+        let res = Dataset::from_str("not xml at all");
+        assert!(res.is_err());
+    }
 }

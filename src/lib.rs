@@ -108,3 +108,9 @@ fn test_extract_stem() {
         "FG-GML-5238-74-00-DEM5A-20161001"
     );
 }
+
+#[test]
+fn test_extract_stem_no_filename() {
+    // A path ending in `..` has no file_stem -> error branch.
+    assert!(extract_stem("..").is_err());
+}

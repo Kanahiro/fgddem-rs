@@ -221,6 +221,104 @@ fn tiff_tile_range(
     (tc_lo, tc_hi, tr_lo, tr_hi)
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_tiff_tile_range_within_single_tile() {
+        // 5x5 FGD tile placed at (0,0) -- entirely within tiff tile (0,0)
+        let (tc_lo, tc_hi, tr_lo, tr_hi) = tiff_tile_range(0, 0, 5, 5);
+        assert_eq!((tc_lo, tc_hi, tr_lo, tr_hi), (0, 0, 0, 0));
+    }
+
+    #[test]
+    fn test_tiff_tile_range_spanning_multiple_tiles() {
+        // FGD tile straddles tiff tile boundary at 256 in both axes.
+        let (tc_lo, tc_hi, tr_lo, tr_hi) = tiff_tile_range(200, 200, 100, 100);
+        assert_eq!(tc_lo, 0);
+        assert_eq!(tc_hi, 1);
+        assert_eq!(tr_lo, 0);
+        assert_eq!(tr_hi, 1);
+    }
+
+    #[test]
+    fn test_compression_kind_to_geotiff() {
+        // Smoke-test all variants by exercising the conversion path.
+        let _ = CompressionKind::None.to_geotiff();
+        let _ = CompressionKind::Deflate.to_geotiff();
+        let _ = CompressionKind::Lzw.to_geotiff();
+        let _ = CompressionKind::Zstd.to_geotiff();
+    }
+
+    #[test]
+    fn test_write_round_trip() {
+        let dir = std::env::temp_dir().join("fgddem-test-write");
+        std::fs::create_dir_all(&dir).unwrap();
+        let out = dir.join("out.tif");
+        let values: Vec<f32> = (0..9).map(|i| i as f32).collect();
+        write(
+            (3, 3),
+            ((0.0, 0.0), (3.0, 3.0)),
+            &values,
+            out.to_str().unwrap(),
+            CompressionKind::None,
+        )
+        .unwrap();
+        let bytes = std::fs::read(&out).unwrap();
+        assert!(bytes.len() > 8);
+        // TIFF little-endian magic: "II" 0x2A 0x00
+        assert_eq!(&bytes[..4], b"II*\0");
+    }
+
+    #[test]
+    fn test_write_merged_streaming_empty_inputs() {
+        let err = write_merged_streaming(&[], "/tmp/should-not-exist.tif", CompressionKind::None)
+            .unwrap_err();
+        assert!(err.to_string().contains("no inputs"));
+    }
+
+    #[test]
+    fn test_write_merged_streaming_single_fixture() {
+        let dir = std::env::temp_dir().join("fgddem-test-merge");
+        std::fs::create_dir_all(&dir).unwrap();
+        let out = dir.join("merged.tif");
+        let inputs = vec!["tests/fixture/FG-GML-5238-74-00-DEM5A-20161001.xml".to_string()];
+        write_merged_streaming(&inputs, out.to_str().unwrap(), CompressionKind::Deflate).unwrap();
+        let bytes = std::fs::read(&out).unwrap();
+        assert!(bytes.len() > 8);
+        assert_eq!(&bytes[..4], b"II*\0");
+    }
+
+    #[test]
+    fn test_write_merged_streaming_shape_mismatch() {
+        // Build a second XML with a different grid shape so the mismatch check fires.
+        let dir = std::env::temp_dir().join("fgddem-test-mismatch");
+        std::fs::create_dir_all(&dir).unwrap();
+        let bad = dir.join("bad.xml");
+        std::fs::write(
+            &bad,
+            r#"<?xml version="1.0" encoding="UTF-8"?>
+<root xmlns:gml="http://www.opengis.net/gml/3.2">
+  <gml:lowerCorner>35.25 138.5</gml:lowerCorner>
+  <gml:upperCorner>35.258333333 138.5125</gml:upperCorner>
+  <gml:low>0 0</gml:low>
+  <gml:high>9 9</gml:high>
+</root>"#,
+        )
+        .unwrap();
+
+        let inputs = vec![
+            "tests/fixture/FG-GML-5238-74-00-DEM5A-20161001.xml".to_string(),
+            bad.to_str().unwrap().to_string(),
+        ];
+        let out = dir.join("merged.tif");
+        let err = write_merged_streaming(&inputs, out.to_str().unwrap(), CompressionKind::None)
+            .unwrap_err();
+        assert!(err.to_string().contains("tile shape mismatch"));
+    }
+}
+
 fn flush_tile<W: std::io::Write + std::io::Seek>(
     writer: &mut geotiff_writer::StreamingTileWriter<f32, W>,
     tc: usize,
