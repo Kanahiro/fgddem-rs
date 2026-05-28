@@ -1,6 +1,6 @@
 # fgddem-rs
 
-基盤地図情報の数値標高モデル (DEM) GML ファイルを GeoTIFF に変換する CLI。Pure Rust 実装で GDAL 不要。
+基盤地図情報の数値標高モデル (DEM) GML ファイルを GeoTIFF に変換する CLI。
 
 ビルド済みバイナリは [Releases](https://github.com/Kanahiro/fgddem-rs/releases) から取得できます。
 
@@ -28,4 +28,3 @@ fgddem input_dir/*.xml -o out --merge
 - GeoTIFF, single band, Float64
 - CRS: EPSG:6668 (JGD2011 lat-lon)
 - Nodata: `-9999`
-- マージ時は 256×256 タイル形式、個別出力時はストリップ形式
