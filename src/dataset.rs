@@ -130,6 +130,87 @@ impl Dataset {
     }
 }
 
+#[derive(Debug, Clone, Copy)]
+pub struct Metadata {
+    pub shape: (usize, usize),
+    pub extent: ((f64, f64), (f64, f64)),
+}
+
+pub fn parse_metadata(path: &std::path::Path) -> Result<Metadata> {
+    use quick_xml::events::Event;
+    use quick_xml::reader::Reader;
+
+    let mut reader = Reader::from_file(path)?;
+    reader.config_mut().trim_text(true);
+
+    let mut buf = Vec::new();
+    let mut lower: Option<(f64, f64)> = None;
+    let mut upper: Option<(f64, f64)> = None;
+    let mut low: Option<(usize, usize)> = None;
+    let mut high: Option<(usize, usize)> = None;
+
+    enum Capture {
+        None,
+        LowerCorner,
+        UpperCorner,
+        Low,
+        High,
+    }
+    let mut capture = Capture::None;
+
+    loop {
+        match reader.read_event_into(&mut buf)? {
+            Event::Start(e) => {
+                capture = match e.local_name().as_ref() {
+                    b"lowerCorner" => Capture::LowerCorner,
+                    b"upperCorner" => Capture::UpperCorner,
+                    b"low" => Capture::Low,
+                    b"high" => Capture::High,
+                    _ => Capture::None,
+                };
+            }
+            Event::Text(t) => {
+                let text = t.unescape()?;
+                let parts: Vec<&str> = text.split_whitespace().collect();
+                if parts.len() >= 2 {
+                    match capture {
+                        Capture::LowerCorner => {
+                            lower = Some((parts[0].parse()?, parts[1].parse()?));
+                        }
+                        Capture::UpperCorner => {
+                            upper = Some((parts[0].parse()?, parts[1].parse()?));
+                        }
+                        Capture::Low => {
+                            low = Some((parts[0].parse()?, parts[1].parse()?));
+                        }
+                        Capture::High => {
+                            high = Some((parts[0].parse()?, parts[1].parse()?));
+                        }
+                        Capture::None => {}
+                    }
+                }
+                capture = Capture::None;
+            }
+            Event::Eof => break,
+            _ => {}
+        }
+        if lower.is_some() && upper.is_some() && low.is_some() && high.is_some() {
+            break;
+        }
+        buf.clear();
+    }
+
+    let lower = lower.ok_or_else(|| anyhow::anyhow!("missing lowerCorner"))?;
+    let upper = upper.ok_or_else(|| anyhow::anyhow!("missing upperCorner"))?;
+    let low = low.ok_or_else(|| anyhow::anyhow!("missing GridEnvelope/low"))?;
+    let high = high.ok_or_else(|| anyhow::anyhow!("missing GridEnvelope/high"))?;
+
+    Ok(Metadata {
+        shape: (high.0 - low.0 + 1, high.1 - low.1 + 1),
+        extent: (lower, upper),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -209,5 +290,16 @@ mod tests {
             dataset.get_grid_values(),
             &vec![145.30, 145.10, 144.90, 144.90, 144.84, 144.81, 121.90, -9999., -9999.]
         );
+    }
+
+    #[test]
+    fn test_parse_metadata_matches_full_parse() {
+        let path = std::path::Path::new("tests/fixture/FG-GML-5238-74-00-DEM5A-20161001.xml");
+        let meta = parse_metadata(path).unwrap();
+
+        let content = std::fs::read_to_string(path).unwrap();
+        let dataset = Dataset::from_str(&content).unwrap();
+        assert_eq!(meta.shape, dataset.get_grid_shape());
+        assert_eq!(meta.extent, dataset.get_extent());
     }
 }

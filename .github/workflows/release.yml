@@ -1,42 +1,33 @@
-name: Test
+name: Release
+
 on:
     release:
         types:
             - created
-jobs:
-    release:
-        name: Release - ${{ matrix.platform.release_for }}
-        strategy:
-            matrix:
-                platform:
-                    - release_for: Debian-x86_64
-                      os: ubuntu-20.04
-                      target: x86_64-unknown-linux-gnu
-                      bin: fgddem
-                      name: fgddem-Debian-x86_64.tar.gz
-                      command: build
 
-        runs-on: ${{ matrix.platform.os }}
+permissions:
+    contents: write
+
+jobs:
+    upload-assets:
+        name: ${{ matrix.target }}
+        strategy:
+            fail-fast: false
+            matrix:
+                include:
+                    - target: x86_64-unknown-linux-gnu
+                      os: ubuntu-latest
+                    - target: aarch64-unknown-linux-gnu
+                      os: ubuntu-latest
+                    - target: aarch64-apple-darwin
+                      os: macos-latest
+                    - target: x86_64-pc-windows-msvc
+                      os: windows-latest
+        runs-on: ${{ matrix.os }}
         steps:
-            - name: Checkout
-              uses: actions/checkout@v3
-            - name: install libgdal-dev
-              run: |
-                  sudo apt-add-repository ppa:ubuntugis/ubuntugis-unstable
-                  sudo apt-get update
-                  sudo apt-get install gdal-bin libgdal-dev
-            - name: Build binary
-              uses: houseabsolute/actions-rust-cross@v0
+            - uses: actions/checkout@v4
+            - uses: taiki-e/upload-rust-binary-action@v1
               with:
-                  command: ${{ matrix.platform.command }}
-                  target: ${{ matrix.platform.target }}
-                  args: '--locked --release'
-                  strip: true
-            - name: Create ziparchive
-              run: |
-                  tar -czf ${{ matrix.platform.name }} target/${{ matrix.platform.target }}/release/${{ matrix.platform.bin }}
-            - name: Upload release asset
-              env:
-                  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-              run: |
-                  gh release upload ${{ github.event.release.tag_name }} ${{ matrix.platform.name }}
+                  bin: fgddem
+                  target: ${{ matrix.target }}
+                  token: ${{ secrets.GITHUB_TOKEN }}

@@ -8,7 +8,8 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.86"
 clap = "4.5.11"
-gdal = "0.17.0"
+geotiff-writer = "0.5.0"
+ndarray = "0.17"
 quick-xml = { version = "0.36.1", features = ["serialize"] }
 rayon = "1.10.0"
 serde = { version = "1.0.204", features = ["derive"] }
