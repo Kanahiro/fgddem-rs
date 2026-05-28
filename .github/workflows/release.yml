@@ -30,7 +30,7 @@ jobs:
                       binary_suffix: .exe
         runs-on: ${{ matrix.os }}
         steps:
-            - uses: actions/checkout@v4
+            - uses: actions/checkout@v5
             - uses: houseabsolute/actions-rust-cross@v0
               with:
                   target: ${{ matrix.target }}
